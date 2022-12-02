@@ -43,7 +43,10 @@ public class AOCRunner
             {
                 try
                 {
-                    RunDay(dayNumber).Wait();
+                    using (Env.Logger.BeginScope($"[Day {dayNumber}]"))
+                    {
+                        RunDay(dayNumber).Wait();
+                    }
                 }
                 catch (Exception)
                 {
