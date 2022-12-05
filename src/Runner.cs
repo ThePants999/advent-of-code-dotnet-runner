@@ -5,6 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
+public enum RunMode
+{
+    TodayOnly,
+    AllDays
+}
+
 public class AOCRunner
 {
     private AOCEnvironment Env { get; init; }
@@ -27,12 +33,120 @@ public class AOCRunner
         }
     }
 
+    /// <summary>
+    /// Run Advent of Code challenge days, using a sensible default behaviour.
+    /// </summary>
+    public void Run()
+    {
+        Run(new string[0]);
+    }
+
+    /// <summary>
+    /// Run Advent of Code challenge days, using user-controlled inputs.
+    /// </summary>
+    /// <param name="commandLineParams">Command-line arguments passed to the program, omitting the executable. Accepted options:
+    /// -t, --today: run the day number corresponding to today's date (also the default if no arguments are passed)
+    /// -a, --all: run all days, 1-25
+    /// start finish: run days from _start_ to _finish_, inclusive
+    /// </param>
+    public void Run(string[] commandLineParams)
+    {
+        switch (commandLineParams.Length)
+        {
+            case 0:
+                // No parameters passed, invoke default behaviour: today only.
+                try
+                {
+                    Run(RunMode.TodayOnly);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Can only run in 'today' mode during the Advent of Code.");
+                }
+                break;
+
+            case 1:
+                switch (commandLineParams[0])
+                {
+                    case "-t":
+                    case "--today":
+                        try
+                        {
+                            Run(RunMode.TodayOnly);
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("Can only run in 'today' mode during the Advent of Code.");
+                        }
+                        break;
+
+                    case "-a":
+                    case "--all":
+                        Run(RunMode.AllDays);
+                        break;
+
+                    default:
+                        Console.WriteLine("Invalid command line arguments provided.");
+                        break;
+                }
+                break;
+
+            case 2:
+                try
+                {
+                    int firstDay = int.Parse(commandLineParams[0]);
+                    int lastDay = int.Parse(commandLineParams[1]);
+                    Run(firstDay, lastDay);
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine("Invalid command line arguments provided.");
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("The first and last days must both be within the range 1-25, and the last day must be equal to or greater than the first day.");
+                }
+                break;
+
+            default:
+                Console.WriteLine("Invalid command line arguments provided.");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Run Advent of Code challenge days, using an unspecified range.
+    /// </summary>
+    /// <param name="mode">Whether to run all days, or just today.</param>
+    public void Run(RunMode mode)
+    {
+        if (mode == RunMode.AllDays)
+        {
+            Run(1, 25);
+        }
+        else
+        {
+            int today = DateTime.Now.Day;
+            Run(today, today);
+        }
+    }
+
+    /// <summary>
+    /// Run a contiguous set of Advent of Code challenge days, in sequence.
+    /// </summary>
+    /// <param name="firstDay">The day number of the first day to run.</param>
+    /// <param name="lastDay">The day number of the last day to run, inclusive.</param>
     public void Run(int firstDay, int lastDay)
     {
         using (Env.Logger.BeginScope("[Runner]"))
         {
             Env.Logger.LogDebug($"Beginning run");
 
+            if ((firstDay < 1) || (firstDay > 25) || (lastDay < 1) || (lastDay > 25))
+            {
+                Env.Logger.LogError($"Invalid firstDay or lastDay: {firstDay}-{lastDay}");
+                throw new Exception("firstDay and lastDay must be 1-25 inclusive");
+            }
             if (firstDay > lastDay)
             {
                 Env.Logger.LogError("Days in wrong order");
@@ -48,12 +162,13 @@ public class AOCRunner
                         RunDay(dayNumber).Wait();
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     // The only exception not handled by RunDay is a DayNotAvailableException,
                     // but Wait() wraps it in an AggregateException so we can't handle it directly.
                     // We don't want to keep trying further days if this one isn't available yet,
                     // they'll all have the same result.
+                    PrintFriendlyException(e);
                     break;
                 }
             }
@@ -70,7 +185,7 @@ public class AOCRunner
 
             // Running the solution is not necessarily idempotent, so
             // we need separate instances to run Test() and Execute() on.
-            Object[] constructorParams = new Object[] { Env };                        
+            Object[] constructorParams = new Object[] { Env };
             Day testDay = (Day)dayConst.Invoke(constructorParams);
             TestResult? testResult = testDay.Test();
             if (testResult != null)
@@ -91,12 +206,11 @@ public class AOCRunner
         catch (KeyNotFoundException)
         {
             Env.Logger.LogError("Day class not provided");
-            throw new Exception($"No class was provided for day {dayNumber}");
+            Console.WriteLine($"The set of days to run included {dayNumber}, but no class was provided implementing that day.");
         }
         catch (DayNotAvailableException e)
         {
             Env.Logger.LogWarning("Day not available yet", e);
-            PrintFriendlyException(e);
             throw e;
         }
         catch (InputException e)
@@ -121,7 +235,9 @@ public class AOCRunner
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.Write("[CORRECT] ");
                 Console.ResetColor();
-            } else {
+            }
+            else
+            {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write($"[INCORRECT] ");
                 Console.ResetColor();
