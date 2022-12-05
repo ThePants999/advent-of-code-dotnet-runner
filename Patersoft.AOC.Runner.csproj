@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <Version>0.3.1</Version>
+    <Version>0.4.0</Version>
     <Authors>Chris Paterson</Authors>
     <Title>Advent of Code Runner</Title>
     <PackageDescription>Framework for building Advent of Code solutions in .NET.</PackageDescription>
