@@ -29,6 +29,25 @@ public class Day1 : Day
     }
 }
 ```
+* Optionally, override the `GetExampleInput()`, `GetExamplePart1Answer()` and `GetExamplePart2Answer()` methods, just returning the examples given to you in the question. If you do this, your solution will be tested with this data as well.
+```C#
+    protected override string? GetExampleInput()
+    {
+        return @"A Y
+B X
+C Z";
+    }
+
+    protected override string? GetExamplePart1Answer()
+    {
+        return "15";
+    }
+
+    protected override string? GetExamplePart2Answer()
+    {
+        return "12";
+    }
+```
 * Write a `Main()` method that passes all of your subclasses to an `AOCRunner` and then calls `Run()`.
 
 ```C#
