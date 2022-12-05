@@ -65,10 +65,22 @@ public class AOCRunner
         try
         {
             Env.Logger.LogDebug($"Attempting day {dayNumber}");
-            Console.WriteLine("--------------------------");
+            Console.WriteLine($"--------------------------\nDay {dayNumber}");
             Day day = Days[dayNumber];
+            TestResult? testResult = day.Test();
+            if (testResult != null)
+            {
+                Console.WriteLine("--Example input--");
+                Console.Write($"Part 1: {testResult.Part1Result} ");
+                WriteResult(testResult.Part1Correct);
+                Console.WriteLine($"({testResult.Part1Time})");
+                Console.Write($"Part 2: {testResult.Part2Result} ");
+                WriteResult(testResult.Part2Correct);
+                Console.WriteLine($"({testResult.Part2Time})");
+                Console.WriteLine("--Real input--");
+            }
             DayResult result = await day.Execute();
-            Console.WriteLine($"Day {dayNumber}\nPart 1: {result.Part1Result} ({result.Part1Time})\nPart 2: {result.Part2Result} ({result.Part2Time})");
+            Console.WriteLine($"Part 1: {result.Part1Result} ({result.Part1Time})\nPart 2: {result.Part2Result} ({result.Part2Time})");
         }
         catch (KeyNotFoundException)
         {
@@ -91,6 +103,23 @@ public class AOCRunner
         {
             Env.Logger.LogError("Exception hit during day code", e);
             PrintFriendlyException(e);
+        }
+    }
+
+    private static void WriteResult(bool? correct)
+    {
+        if (correct.HasValue)
+        {
+            if (correct.Value)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("[CORRECT] ");
+                Console.ResetColor();
+            } else {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write($"[INCORRECT] ");
+                Console.ResetColor();
+            }
         }
     }
 
