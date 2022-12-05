@@ -8,9 +8,9 @@ using System.Reflection;
 public class AOCRunner
 {
     private AOCEnvironment Env { get; init; }
-    private IDictionary<int, Day> Days { get; init; }
+    private IDictionary<int, ConstructorInfo> Days { get; init; }
 
-    private AOCRunner(AOCEnvironment env, IDictionary<int, Day> days)
+    private AOCRunner(AOCEnvironment env, IDictionary<int, ConstructorInfo> days)
     {
         this.Env = env;
         this.Days = days;
@@ -22,7 +22,7 @@ public class AOCRunner
         {
             logger.LogDebug("Instantiating");
             AOCEnvironment env = AOCEnvironment.Initialise(logger).GetAwaiter().GetResult();
-            IDictionary<int, Day> days = InstantiateDays(env, dayTypes);
+            IDictionary<int, ConstructorInfo> days = InstantiateDays(env, dayTypes);
             return new AOCRunner(env, days);
         }
     }
@@ -66,8 +66,13 @@ public class AOCRunner
         {
             Env.Logger.LogDebug($"Attempting day {dayNumber}");
             Console.WriteLine($"--------------------------\nDay {dayNumber}");
-            Day day = Days[dayNumber];
-            TestResult? testResult = day.Test();
+            ConstructorInfo dayConst = Days[dayNumber];
+
+            // Running the solution is not necessarily idempotent, so
+            // we need separate instances to run Test() and Execute() on.
+            Object[] constructorParams = new Object[] { Env };                        
+            Day testDay = (Day)dayConst.Invoke(constructorParams);
+            TestResult? testResult = testDay.Test();
             if (testResult != null)
             {
                 Console.WriteLine("--Example input--");
@@ -79,6 +84,7 @@ public class AOCRunner
                 Console.WriteLine($"({testResult.Part2Time})");
                 Console.WriteLine("--Real input--");
             }
+            Day day = (Day)dayConst.Invoke(constructorParams);
             DayResult result = await day.Execute();
             Console.WriteLine($"Part 1: {result.Part1Result} ({result.Part1Time})\nPart 2: {result.Part2Result} ({result.Part2Time})");
         }
@@ -123,9 +129,9 @@ public class AOCRunner
         }
     }
 
-    private static IDictionary<int, Day> InstantiateDays(AOCEnvironment env, Type[] dayTypes)
+    private static IDictionary<int, ConstructorInfo> InstantiateDays(AOCEnvironment env, Type[] dayTypes)
     {
-        IDictionary<int, Day> days = new Dictionary<int, Day>(25);
+        IDictionary<int, ConstructorInfo> days = new Dictionary<int, ConstructorInfo>(25);
         Type[] constructorParamTypes = new Type[] { typeof(AOCEnvironment) };
         Object[] constructorParams = new Object[] { env };
         foreach (Type dayType in dayTypes)
@@ -151,7 +157,7 @@ public class AOCRunner
                             env.Logger.LogError("Duplicate day");
                             throw new Exception($"Two classes were provided that both claimed to be day {newDay.DayNumber}. Make sure you only provide each day once.");
                         }
-                        days.Add(newDay.DayNumber, newDay);
+                        days.Add(newDay.DayNumber, constructor);
                     }
                     catch (Exception e)
                     {
