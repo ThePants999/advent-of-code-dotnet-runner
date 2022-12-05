@@ -1,12 +1,15 @@
 # Advent of Code Runner for .NET
+
 This project provides a simple framework library that makes it easy for you to tackle the Advent of Code in a .NET language while writing as little code as possible that isn't directly solving each day's task. The framework will take care of fetching the input from the AoC website, caching it locally and providing it to your code, as well as timing the execution and outputting the results.
 
 To use it:
+
 * Reference this package:
 
 ```xml
 <PackageReference Include="Patersoft.AOC.Runner" />
 ```
+
 * Write each day's solution as a subclass of `Patersoft.AOC.Day`, providing a constructor that takes a single `AOCEnvironment` parameter:
 
 ```C#
@@ -29,7 +32,9 @@ public class Day1 : Day
     }
 }
 ```
+
 * Optionally, override the `GetExampleInput()`, `GetExamplePart1Answer()` and `GetExamplePart2Answer()` methods, just returning the examples given to you in the question. If you do this, your solution will be tested with this data as well.
+
 ```C#
     protected override string? GetExampleInput()
     {
@@ -48,7 +53,8 @@ C Z";
         return "12";
     }
 ```
-* Write a `Main()` method that passes all of your subclasses to an `AOCRunner` and then calls `Run()`.
+
+* Write a `Main()` method that passes all of your subclasses to an `AOCRunner` and then calls `Run()`. There are a variety of `Run()` flavours, from running just today's challenge to running a set of specific days, and you can just pass through your command-line parameters if you're happy with the runner's CLI.
 
 ```C#
 using Patersoft.AOC;
@@ -64,12 +70,13 @@ public class AOC22
             typeof(Day3),
             typeof(Day4),
         });
-        runner.Run(1, 4);
+        runner.Run(args);
     }
 }
 ```
 
 This example does no logging, but you can provide an alternative `ILogger<AOCRunner>` implementation if you'd like logging, e.g.:
+
 ```C#
         using ILoggerFactory loggerFactory =
             LoggerFactory.Create(builder =>
