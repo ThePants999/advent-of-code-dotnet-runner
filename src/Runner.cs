@@ -8,6 +8,7 @@ using System.Reflection;
 public enum RunMode
 {
     TodayOnly,
+    SoFar,
     AllDays
 }
 
@@ -46,6 +47,7 @@ public class AOCRunner
     /// </summary>
     /// <param name="commandLineParams">Command-line arguments passed to the program, omitting the executable. Accepted options:
     /// -t, --today: run the day number corresponding to today's date (also the default if no arguments are passed)
+    /// -s, --sofar: run days from 1 to today
     /// -a, --all: run all days, 1-25
     /// start finish: run days from _start_ to _finish_, inclusive
     /// </param>
@@ -77,6 +79,18 @@ public class AOCRunner
                         catch (Exception)
                         {
                             Console.WriteLine("Can only run in 'today' mode during the Advent of Code.");
+                        }
+                        break;
+
+                    case "-s":
+                    case "--sofar":
+                        try
+                        {
+                            Run(RunMode.SoFar);
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("Can only run in 'so far' mode during the Advent of Code.");
                         }
                         break;
 
@@ -120,14 +134,20 @@ public class AOCRunner
     /// <param name="mode">Whether to run all days, or just today.</param>
     public void Run(RunMode mode)
     {
-        if (mode == RunMode.AllDays)
+        switch (mode)
         {
-            Run(1, 25);
-        }
-        else
-        {
-            int today = DateTime.Now.Day;
-            Run(today, today);
+            case RunMode.AllDays:
+                Run(1, 25);
+                break;
+
+            case RunMode.SoFar:
+                Run(1, DateTime.Now.Day);
+                break;
+
+            case RunMode.TodayOnly:
+                int today = DateTime.Now.Day;
+                Run(today, today);
+                break;
         }
     }
 
@@ -153,13 +173,16 @@ public class AOCRunner
                 throw new Exception("firstDay must be less than or equal to lastDay");
             }
 
+            TimeSpan totalTime = TimeSpan.Zero;
             for (int dayNumber = firstDay; dayNumber <= lastDay; dayNumber++)
             {
                 try
                 {
                     using (Env.Logger.BeginScope($"[Day {dayNumber}]"))
                     {
-                        RunDay(dayNumber).Wait();
+                        Task<TimeSpan> task = RunDay(dayNumber);
+                        task.Wait();
+                        totalTime += task.Result;
                     }
                 }
                 catch (Exception e)
@@ -172,10 +195,12 @@ public class AOCRunner
                     break;
                 }
             }
+
+            Console.WriteLine($"--------------------------\nTotal time: {totalTime}");
         }
     }
 
-    private async Task RunDay(int dayNumber)
+    private async Task<TimeSpan> RunDay(int dayNumber)
     {
         try
         {
@@ -202,11 +227,13 @@ public class AOCRunner
             Day day = (Day)dayConst.Invoke(constructorParams);
             DayResult result = await day.Execute();
             Console.WriteLine($"Part 1: {result.Part1Result} ({result.Part1Time})\nPart 2: {result.Part2Result} ({result.Part2Time})");
+            return result.Part1Time + result.Part2Time;
         }
         catch (KeyNotFoundException)
         {
             Env.Logger.LogError("Day class not provided");
             Console.WriteLine($"The set of days to run included {dayNumber}, but no class was provided implementing that day.");
+            return TimeSpan.Zero;
         }
         catch (DayNotAvailableException e)
         {
@@ -218,11 +245,13 @@ public class AOCRunner
             Env.Logger.LogError("Input exception hit", e);
             Console.WriteLine($"Couldn't fetch input for day {dayNumber}");
             PrintFriendlyException(e);
+            return TimeSpan.Zero;
         }
         catch (Exception e)
         {
             Env.Logger.LogError("Exception hit during day code", e);
             PrintFriendlyException(e);
+            return TimeSpan.Zero;
         }
     }
 
