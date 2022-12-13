@@ -10,7 +10,7 @@ To use it:
 <PackageReference Include="Patersoft.AOC.Runner" />
 ```
 
-* Write each day's solution as a subclass of `Patersoft.AOC.Day`, providing a constructor that takes a single `AOCEnvironment` parameter:
+* Write each day's solution as a subclass of `Patersoft.AOC.Day`, providing a constructor that takes a single `AOCEnvironment` parameter. Your input is available as a property called `Input`.
 
 ```C#
 using Patersoft.AOC;
@@ -21,8 +21,12 @@ public class Day1 : Day
 
     protected override string ExecutePart1()
     {
-        // Some clever logic
-        return "the answer";
+        // Aha! I've cunningly determined that the
+        // answer is the first three characters of
+        // the input, reversed!
+        string answer = Input.Substring(0, 3);
+        answer.Reverse();
+        return answer;
     }
 
     protected override string ExecutePart2()
